@@ -67,7 +67,8 @@ const emptyItem: ItemForm = {
 };
 
 export function CotizacionForm() {
-  const { setCreatingCotizacion } = useAppStore();
+  const { editingCotizacionId, setCreatingCotizacion, setEditingCotizacionId } = useAppStore();
+  const isEditing = !!editingCotizacionId;
 
   // Datos maestros
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -88,22 +89,56 @@ export function CotizacionForm() {
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerTargetIdx, setPickerTargetIdx] = useState(-1);
 
-  // Cargar datos maestros
+  // Cargar datos maestros (y datos de cotización si estamos editando)
   useEffect(() => {
     Promise.all([
       fetch("/api/clientes").then((r) => r.json()),
       fetch("/api/productos?activos=true").then((r) => r.json()),
       fetch("/api/config").then((r) => r.json()),
     ])
-      .then(([cls, prods, cfg]) => {
+      .then(async ([cls, prods, cfg]) => {
         setClientes(cls);
         setProductos(prods);
         setConfig(cfg);
         setTipoCambio(String(cfg.tipoCambio || 17.5));
+
+        // Si estamos editando, cargar datos de la cotización
+        if (editingCotizacionId) {
+          try {
+            const res = await fetch(`/api/cotizaciones/${editingCotizacionId}`);
+            if (res.ok) {
+              const cot = await res.json();
+              setTitulo(cot.titulo || "");
+              setClienteId(cot.clienteId || "");
+              setTipoCambio(String(cot.tipoCambio || 17.5));
+              setMonedaAnticipo(cot.monedaAnticipo || "MXN");
+              // Precargar items
+              if (cot.items && cot.items.length > 0) {
+                setItems(
+                  cot.items.map((it: Record<string, unknown>) => ({
+                    productoId: "",
+                    codigo: String(it.codigo || ""),
+                    descripcion: String(it.descripcion || ""),
+                    tieneDimensiones: Number(it.alto) > 0 && Number(it.ancho) > 0,
+                    unidadMedida: (it.unidadMedida as UnidadMedida) || "pie2",
+                    precioBaseM2: Number(it.precioBaseM2) || 0,
+                    utilidadPorcentaje: Number(it.utilidadPorcentaje) || 50,
+                    alto: Number(it.alto) > 0 ? String(it.alto) : "",
+                    ancho: Number(it.ancho) > 0 ? String(it.ancho) : "",
+                    cantidad: String(it.cantidad || 1),
+                    opcion: String(it.opcion || ""),
+                  }))
+                );
+              }
+            }
+          } catch {
+            toast.error("Error al cargar cotización");
+          }
+        }
       })
       .catch(() => toast.error("Error al cargar datos"))
       .finally(() => setLoading(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Agregar item vacío
   const addItem = useCallback(() => {
@@ -282,25 +317,31 @@ export function CotizacionForm() {
         };
       });
 
-      const res = await fetch("/api/cotizaciones", {
-        method: "POST",
+      const url = isEditing ? "/api/cotizaciones" : "/api/cotizaciones";
+      const method = isEditing ? "PUT" : "POST";
+      const bodyData: Record<string, unknown> = {
+        clienteId,
+        titulo: titulo.trim(),
+        tipoCambio: parseFloat(tipoCambio) || 17.5,
+        monedaAnticipo,
+        items: cotizacionItems,
+      };
+      if (isEditing) bodyData.id = editingCotizacionId;
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clienteId,
-          titulo: titulo.trim(),
-          tipoCambio: parseFloat(tipoCambio) || 17.5,
-          monedaAnticipo,
-          items: cotizacionItems,
-        }),
+        body: JSON.stringify(bodyData),
       });
 
       if (res.ok) {
         const data = await res.json();
-        toast.success(`Cotización ${data.numeroCotizacion} creada`);
+        toast.success(isEditing ? `Cotización ${data.numeroCotizacion} actualizada` : `Cotización ${data.numeroCotizacion} creada`);
         setCreatingCotizacion(false);
+        setEditingCotizacionId(null);
       } else {
         const err = await res.json();
-        toast.error(err.error || "Error al crear");
+        toast.error(err.error || "Error al guardar");
       }
     } catch {
       toast.error("Error de conexión");
@@ -345,12 +386,17 @@ export function CotizacionForm() {
           variant="ghost"
           size="icon"
           className="h-9 w-9"
-          onClick={() => setCreatingCotizacion(false)}
+          onClick={() => {
+            setCreatingCotizacion(false);
+            setEditingCotizacionId(null);
+          }}
         >
           <ArrowLeft size={18} />
         </Button>
         <div>
-          <h2 className="text-base font-bold text-[#1e3a5f]">Nueva Cotización</h2>
+          <h2 className="text-base font-bold text-[#1e3a5f]">
+            {isEditing ? "Editar Cotización" : "Nueva Cotización"}
+          </h2>
           <p className="text-[10px] text-muted-foreground">
             {tituloCompuesto}
           </p>
@@ -678,7 +724,7 @@ export function CotizacionForm() {
         ) : (
           <CheckCircle2 size={18} />
         )}
-        {saving ? "Guardando..." : "Crear Cotización"}
+        {saving ? "Guardando..." : isEditing ? "Guardar Cambios" : "Crear Cotización"}
       </Button>
 
       {/* Sheet: Selector de productos */}

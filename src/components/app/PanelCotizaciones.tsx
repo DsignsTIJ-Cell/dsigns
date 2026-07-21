@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   FileText, Plus, Search, Filter, Download, ArrowLeft,
-  Loader2, Package, Trash2, AlertCircle,
+  Loader2, Package, Trash2, AlertCircle, Pencil, Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,6 +69,7 @@ interface CotizacionRow {
   retISR: number;
   anticipo: number;
   monedaAnticipo: string;
+  clienteId: string;
   cliente: {
     id: string;
     clienteId: string;
@@ -127,7 +128,9 @@ function VistaDetalle({
   onBack: () => void;
   onDeleted: () => void;
 }) {
+  const { setEditingCotizacionId, setCreatingCotizacion } = useAppStore();
   const [descargando, setDescargando] = useState(false);
+  const [duplicando, setDuplicando] = useState(false);
   const [nuevoEstado, setNuevoEstado] = useState(cot.estado);
   const [config, setConfig] = useState<ConfigData | null>(null);
 
@@ -136,6 +139,54 @@ function VistaDetalle({
       .then((r) => r.json())
       .then(setConfig);
   }, []);
+
+  const editarCotizacion = () => {
+    setEditingCotizacionId(cot.id);
+    setCreatingCotizacion(true);
+  };
+
+  const duplicarCotizacion = async () => {
+    try {
+      setDuplicando(true);
+      const res = await fetch("/api/cotizaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clienteId: cot.clienteId,
+          titulo: (cot.titulo || "") + " (copia)",
+          tipoCambio: cot.tipoCambio,
+          monedaAnticipo: cot.monedaAnticipo,
+          items: (cot.items || []).map((it) => ({
+            codigo: it.codigo,
+            descripcion: it.descripcion,
+            alto: it.alto,
+            ancho: it.ancho,
+            area: it.area,
+            unidadMedida: it.unidadMedida,
+            precioBaseM2: it.precioBaseM2,
+            precioBaseTotal: it.precioBaseTotal,
+            utilidadPorcentaje: it.utilidadPorcentaje,
+            montoUtilidad: it.montoUtilidad,
+            precioUnitario: it.precioUnitario,
+            cantidad: it.cantidad,
+            total: it.total,
+            opcion: it.opcion,
+            orden: it.orden,
+          })),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Cotización ${data.numeroCotizacion} duplicada`);
+      } else {
+        toast.error("Error al duplicar");
+      }
+    } catch {
+      toast.error("Error de conexión");
+    } finally {
+      setDuplicando(false);
+    }
+  };
 
   const descargarPDF = async () => {
     try {
@@ -342,6 +393,27 @@ function VistaDetalle({
         >
           {descargando ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
           {descargando ? "Generando..." : "Descargar PDF"}
+        </Button>
+
+        <Button
+          variant="outline"
+          className="h-11 w-11 shrink-0"
+          size="icon"
+          onClick={editarCotizacion}
+          title="Editar"
+        >
+          <Pencil size={16} />
+        </Button>
+
+        <Button
+          variant="outline"
+          className="h-11 w-11 shrink-0"
+          size="icon"
+          onClick={duplicarCotizacion}
+          disabled={duplicando}
+          title="Duplicar"
+        >
+          {duplicando ? <Loader2 size={16} className="animate-spin" /> : <Copy size={16} />}
         </Button>
 
         <AlertDialog>

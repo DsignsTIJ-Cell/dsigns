@@ -19,14 +19,14 @@ const panels: Record<string, React.ReactNode> = {
 };
 
 export default function Home() {
-  const { activeTab, creatingCotizacion } = useAppStore();
+  const { activeTab, creatingCotizacion, editingCotizacionId } = useAppStore();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <AppHeader />
       <main className="flex-1 px-4 py-4 pb-24">
         {activeTab === "cotizaciones" && creatingCotizacion ? (
-          <CotizacionForm />
+          <CotizacionForm key={editingCotizacionId || "new"} />
         ) : (
           panels[activeTab]
         )}
