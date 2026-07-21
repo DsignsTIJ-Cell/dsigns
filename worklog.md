@@ -51,3 +51,40 @@ Stage Summary:
 - API /api/productos trabajando con todos los campos (alto, ancho, utilidad, precio base)
 - 6 productos de ejemplo en la BD (5 originales + 1 creado durante prueba)
 - Siguiente paso: Paso 3 - Módulo de Clientes
+---
+Task ID: 2.5
+Agent: main
+Task: Mover utilidad a configuracion global y selector de unidad de area
+
+Work Log:
+- Agregado campo utilidadDefault (Float @default(50)) al modelo Configuracion en Prisma
+- Actualizada interfaz Configuracion en types/index.ts con utilidadDefault
+- Actualizada API /api/config para incluir utilidadDefault en creacion por defecto
+- PanelConfiguracion.tsx: agregado campo editable "Utilidad Default (%)" en seccion fiscal, reorganizado a grid-cols-2
+- ProductoForm.tsx: eliminado campo de utilidad individual, ahora lee desde /api/config via useEffect, muestra indicador amarillo de solo lectura con referencia a Configuracion
+- Sincronizado schema con db push, verificado en BD que utilidadDefault=50
+- Build compila sin errores
+
+Stage Summary:
+- Utilidad ahora se configura globalmente desde Configuracion > Fiscal
+- ProductoForm usa la utilidad global automaticamente (no editable por producto)
+- Selector de unidad de area (cm2/m2/in2/pie2) ya estaba implementado
+
+---
+Task ID: 3
+Agent: main
+Task: Modulo de Clientes CRUD completo
+
+Work Log:
+- Creado ClienteForm.tsx con Drawer (crear/editar), campos: ID auto-secuencial, nombre, empresa, telefono, email
+- ID de cliente se genera automaticamente buscando el maximo existente + 1
+- Reescrito PanelClientes.tsx con CRUD completo: lista con search, skeleton loading, estado vacio, avatar con iniciales, datos de contacto
+- Cada cliente muestra: iniciales en avatar, nombre, empresa, telefono, email, ID badge, menu de acciones (editar/eliminar)
+- AlertDialog de confirmacion para eliminar con proteccion por cotizaciones asociadas
+- Build compila sin errores
+
+Stage Summary:
+- Modulo de clientes completamente funcional con CRUD
+- Archivos creados/modificados: ClienteForm.tsx (nuevo), PanelClientes.tsx (reescrito)
+- API /api/clientes ya existia con GET/POST/PUT/DELETE
+
