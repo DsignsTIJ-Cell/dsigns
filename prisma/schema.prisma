@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Cliente {
+  id        String   @id @default(cuid())
+  clienteId String   @unique // C0091
+  nombre    String   // Teresa Garibaldi
+  empresa   String   @default("") // Costa Coronado Residencial
+  telefono  String   @default("")
+  email     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cotizaciones Cotizacion[]
+}
+
+model Producto {
+  id            String   @id @default(cuid())
+  codigo        String   @unique // A0514
+  descripcion   String   // Impresión en acrilico de 3mm...
+  precioUnitario Float   // 6189.00
+  activo        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Cotizacion {
+  id              String   @id @default(cuid())
+  numeroCotizacion String  @unique // S01347
+  fecha           DateTime @default(now())
+  validoHasta     DateTime
+  tipoCambio      Float    @default(17.5) // DLLS a MXN
+  asesor          String   @default("Daniel Sepúlveda Ruíz")
+  estado          String   @default("pendiente") // pendiente, aprobada, rechazada, convertida, pagada
+  clienteId       String
+  subtotal        Float    @default(0)
+  iva             Float    @default(0)
+  retISR          Float    @default(0)
+  total           Float    @default(0)
+  anticipoUSD     Float    @default(0)
+  totalUSD        Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  cliente Cliente     @relation(fields: [clienteId], references: [id])
+  items   CotizacionItem[]
+
+  @@index([numeroCotizacion])
+  @@index([estado])
+  @@index([fecha])
+}
+
+model CotizacionItem {
+  id            String  @id @default(cuid())
+  cotizacionId  String
+  codigo        String  @default("")
+  descripcion   String
+  precioUnitario Float
+  cantidad      Float
+  total         Float
+  opcion        String  @default("") // "Opción 1", "Opción 2", etc.
+  orden         Int     @default(0)
+
+  cotizacion Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+
+  @@index([cotizacionId])
+}
+
+model Configuracion {
+  id                  String @id @default(cuid())
+  nombreEmpresa       String @default("Dsigns")
+  telefono            String @default("663 4917254")
+  correo              String @default("dsigns.tij@gmail.com")
+  asesor              String @default("Daniel Sepúlveda Ruíz")
+  asesorTelefono      String @default("6647297867")
+  logoUrl             String @default("")
+  ivaPorcentaje       Float  @default(8)
+  retencionISRPorcentaje Float @default(1.25)
+  terminosCondiciones String @default("1. Solicitud de trabajo se dara 50% de anticipo para iniciar el trabajo.\n2. Servicio urgente se paga el 100% al entregar el pedido.\n3. Si requiere factura, se solicitara en un periodo maximo de 48 hrs.\n4. Se requiere la Constancia de Situación Fiscal para generar la factura.\n5. Proyectos terminados, se entregan a domicilio en la ciudad de Tijuana sin costo.\nNota: Fuera de la ciudad se genera un gasto adicional de envío.\nPrecios en Moneda Nacional.")
+  vigenciaDias        Int    @default(15)
+  siguienteCotizacionNum Int  @default(1348) // S01348 es el siguiente
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
