@@ -27,3 +27,27 @@ Stage Summary:
 - App funcional con 5 secciones: Cotizaciones, Catálogo, Clientes, Reportes, Configuración
 - PWA listo para instalar en Android (manifest + iconos)
 - Siguientes pasos: implementar CRUD real en Catálogo (Paso 2) y Clientes (Paso 3)
+
+---
+Task ID: 2
+Agent: Main
+Task: Paso 2 - Catálogo de productos y servicios CRUD completo
+
+Work Log:
+- Creado ProductoForm.tsx con formulario completo en Drawer (código, descripción, dimensiones, precio base, utilidad 50%/65%)
+- Calculadora de ejemplo en tiempo real (muestra desglose de precio para 4x3 pies)
+- Refactorizado PanelCatalogo.tsx con CRUD completo conectado a API real
+- Crear: botón + formulario con validaciones
+- Leer: lista con búsqueda, filtro activos/inactivos, skeletons de carga
+- Editar: menú contextual > Editar, abre formulario pre-poblado
+- Eliminar: menú contextual > Eliminar, con AlertDialog de confirmación
+- Activar/Desactivar: toggle desde menú sin eliminar
+- Corregido error de Prisma client cache limpiando .next
+- Corregido error de lint react-hooks/set-state-in-effect con patrón key+componente interno
+- Verificación con agent-browser: crear, editar, menú, sin errores de consola
+
+Stage Summary:
+- CRUD completo del catálogo funcional y verificado
+- API /api/productos trabajando con todos los campos (alto, ancho, utilidad, precio base)
+- 6 productos de ejemplo en la BD (5 originales + 1 creado durante prueba)
+- Siguiente paso: Paso 3 - Módulo de Clientes
