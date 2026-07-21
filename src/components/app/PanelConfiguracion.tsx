@@ -17,6 +17,7 @@ export function PanelConfiguracion() {
     asesorTelefono: "6647297867",
     ivaPorcentaje: "8",
     retencionISRPorcentaje: "1.25",
+    utilidadDefault: "50",
     vigenciaDias: "15",
     terminosCondiciones: "",
   });
@@ -33,6 +34,7 @@ export function PanelConfiguracion() {
           asesorTelefono: data.asesorTelefono || "",
           ivaPorcentaje: String(data.ivaPorcentaje || 8),
           retencionISRPorcentaje: String(data.retencionISRPorcentaje || 1.25),
+          utilidadDefault: String(data.utilidadDefault ?? 50),
           vigenciaDias: String(data.vigenciaDias || 15),
           terminosCondiciones: data.terminosCondiciones || "",
         });
@@ -53,6 +55,7 @@ export function PanelConfiguracion() {
           asesorTelefono: config.asesorTelefono,
           ivaPorcentaje: parseFloat(config.ivaPorcentaje),
           retencionISRPorcentaje: parseFloat(config.retencionISRPorcentaje),
+          utilidadDefault: parseFloat(config.utilidadDefault) || 50,
           vigenciaDias: parseInt(config.vigenciaDias),
           terminosCondiciones: config.terminosCondiciones,
         }),
@@ -148,7 +151,7 @@ export function PanelConfiguracion() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">IVA (%)</Label>
               <Input
@@ -170,14 +173,26 @@ export function PanelConfiguracion() {
               />
             </div>
             <div>
-              <Label className="text-xs">Vigencia (días)</Label>
+              <Label className="text-xs">Utilidad Default (%)</Label>
               <Input
                 type="number"
-                value={config.vigenciaDias}
-                onChange={(e) => setConfig({ ...config, vigenciaDias: e.target.value })}
+                step="0.1"
+                min="0"
+                max="999"
+                value={config.utilidadDefault}
+                onChange={(e) => setConfig({ ...config, utilidadDefault: e.target.value })}
                 className="h-10"
               />
             </div>
+          </div>
+          <div className="mt-3">
+            <Label className="text-xs">Vigencia de cotización (días)</Label>
+            <Input
+              type="number"
+              value={config.vigenciaDias}
+              onChange={(e) => setConfig({ ...config, vigenciaDias: e.target.value })}
+              className="h-10"
+            />
           </div>
         </CardContent>
       </Card>

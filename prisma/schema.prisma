@@ -94,6 +94,7 @@ model Configuracion {
   logoUrl             String @default("")
   ivaPorcentaje       Float  @default(8)
   retencionISRPorcentaje Float @default(1.25)
+  utilidadDefault      Float  @default(50) // Porcentaje de utilidad global para productos
   terminosCondiciones String @default("1. Solicitud de trabajo se dara 50% de anticipo para iniciar el trabajo.\n2. Servicio urgente se paga el 100% al entregar el pedido.\n3. Si requiere factura, se solicitara en un periodo maximo de 48 hrs.\n4. Se requiere la Constancia de Situación Fiscal para generar la factura.\n5. Proyectos terminados, se entregan a domicilio en la ciudad de Tijuana sin costo.\nNota: Fuera de la ciudad se genera un gasto adicional de envío.\nPrecios en Moneda Nacional.")
   vigenciaDias        Int    @default(15)
   siguienteCotizacionNum Int  @default(1348) // S01348 es el siguiente

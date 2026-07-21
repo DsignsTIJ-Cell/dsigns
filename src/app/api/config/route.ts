@@ -14,6 +14,7 @@ export async function GET() {
           asesorTelefono: "6647297867",
           ivaPorcentaje: 8,
           retencionISRPorcentaje: 1.25,
+          utilidadDefault: 50,
           vigenciaDias: 15,
           siguienteCotizacionNum: 1348,
           terminosCondiciones:

@@ -10,6 +10,7 @@ export interface Configuracion {
   logoUrl: string;
   ivaPorcentaje: number;
   retencionISRPorcentaje: number;
+  utilidadDefault: number;
   terminosCondiciones: string;
   vigenciaDias: number;
   siguienteCotizacionNum: number;

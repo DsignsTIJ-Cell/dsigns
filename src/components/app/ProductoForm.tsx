@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,31 +37,6 @@ interface ProductoFormProps {
   loading?: boolean;
 }
 
-const emptyForm = {
-  codigo: "",
-  descripcion: "",
-  precioBaseM2: "",
-  tieneDimensiones: true,
-  unidadMedida: "pie2" as UnidadMedida,
-  utilidadDefault: "50",
-  precioUnitario: "",
-};
-
-function buildInitialForm(producto?: Producto | null) {
-  if (producto) {
-    return {
-      codigo: producto.codigo,
-      descripcion: producto.descripcion,
-      precioBaseM2: String(producto.precioBaseM2 || ""),
-      tieneDimensiones: producto.tieneDimensiones,
-      unidadMedida: (producto.unidadMedida || "pie2") as UnidadMedida,
-      utilidadDefault: String(producto.utilidadDefault),
-      precioUnitario: String(producto.precioUnitario || ""),
-    };
-  }
-  return { ...emptyForm };
-}
-
 function getEjemploArea(unidad: UnidadMedida): { alto: number; ancho: number; label: string } {
   switch (unidad) {
     case "cm2": return { alto: 120, ancho: 90, label: "120 x 90 cm = 10,800 cm²" };
@@ -78,8 +53,45 @@ export function ProductoFormInner({
   onClose,
 }: Omit<ProductoFormProps, "open" | "onOpenChange"> & { onClose: () => void }) {
   const isEdit = !!producto?.id;
-  const [form, setForm] = useState(() => buildInitialForm(producto));
+
+  // Utilidad global desde configuración
+  const [utilidadGlobal, setUtilidadGlobal] = useState(50);
+
+  const [form, setForm] = useState({
+    codigo: "",
+    descripcion: "",
+    precioBaseM2: "",
+    tieneDimensiones: true,
+    unidadMedida: "pie2" as UnidadMedida,
+    precioUnitario: "",
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Cargar datos del producto al editar
+  useEffect(() => {
+    if (producto) {
+      setForm({
+        codigo: producto.codigo,
+        descripcion: producto.descripcion,
+        precioBaseM2: String(producto.precioBaseM2 || ""),
+        tieneDimensiones: producto.tieneDimensiones,
+        unidadMedida: (producto.unidadMedida || "pie2") as UnidadMedida,
+        precioUnitario: String(producto.precioUnitario || ""),
+      });
+    }
+  }, [producto]);
+
+  // Cargar utilidad global desde la API de configuración
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.utilidadDefault != null) {
+          setUtilidadGlobal(data.utilidadDefault);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
@@ -91,22 +103,17 @@ export function ProductoFormInner({
     if (form.tieneDimensiones && !form.precioBaseM2) {
       e.precioBaseM2 = `Ingresa el precio base por ${UNIDADES_MEDIDA[form.unidadMedida]}`;
     }
-    const util = parseFloat(form.utilidadDefault);
-    if (isNaN(util) || util < 0 || util > 999) {
-      e.utilidadDefault = "Ingresa un porcentaje válido (0-999)";
-    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const recalcPrecio = () => {
-    if (form.tieneDimensiones && form.precioBaseM2 && form.utilidadDefault) {
+    if (form.tieneDimensiones && form.precioBaseM2) {
       const pb = parseFloat(form.precioBaseM2) || 0;
-      const util = parseFloat(form.utilidadDefault) || 0;
       const { alto, ancho } = getEjemploArea(form.unidadMedida);
       const area = alto * ancho;
       const base = pb * area;
-      const conUtilidad = base + base * (util / 100);
+      const conUtilidad = base + base * (utilidadGlobal / 100);
       setForm((f) => ({ ...f, precioUnitario: String(conUtilidad.toFixed(2)) }));
     }
   };
@@ -120,18 +127,18 @@ export function ProductoFormInner({
       precioBaseM2: form.tieneDimensiones ? (parseFloat(form.precioBaseM2) || 0) : 0,
       tieneDimensiones: form.tieneDimensiones,
       unidadMedida: form.unidadMedida,
-      utilidadDefault: parseFloat(form.utilidadDefault) || 50,
+      utilidadDefault: utilidadGlobal,
       precioUnitario: parseFloat(form.precioUnitario) || 0,
       activo: true,
     });
   };
 
+  // Datos del cálculo de ejemplo
   const ejemplo = getEjemploArea(form.unidadMedida);
   const areaEjemplo = ejemplo.alto * ejemplo.ancho;
   const pb = parseFloat(form.precioBaseM2) || 0;
-  const util = parseFloat(form.utilidadDefault) || 0;
   const baseEjemplo = pb * areaEjemplo;
-  const utilEjemplo = baseEjemplo * (util / 100);
+  const utilEjemplo = baseEjemplo * (utilidadGlobal / 100);
   const totalEjemplo = baseEjemplo + utilEjemplo;
   const um = UNIDADES_MEDIDA[form.unidadMedida];
   const fmt = (n: number) => n.toLocaleString("es-MX", { minimumFractionDigits: 2 });
@@ -227,44 +234,33 @@ export function ProductoFormInner({
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Precio Base por {um} *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder={um === "pie²" ? "1031.50" : um === "m²" ? "850.00" : "5.50"}
-                  value={form.precioBaseM2}
-                  onChange={(e) =>
-                    setForm({ ...form, precioBaseM2: e.target.value })
-                  }
-                  className="h-10"
-                  onBlur={recalcPrecio}
-                />
-                {errors.precioBaseM2 && (
-                  <p className="text-xs text-destructive">{errors.precioBaseM2}</p>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Utilidad (%)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="999"
-                  placeholder="50"
-                  value={form.utilidadDefault}
-                  onChange={(e) =>
-                    setForm({ ...form, utilidadDefault: e.target.value })
-                  }
-                  className="h-10"
-                  onBlur={recalcPrecio}
-                />
-                {errors.utilidadDefault && (
-                  <p className="text-xs text-destructive">{errors.utilidadDefault}</p>
-                )}
-                <p className="text-[10px] text-muted-foreground">
-                  Escribe cualquier % (ej: 50, 65, 30...)
+            {/* Precio base */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Precio Base por {um} *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder={um === "pie²" ? "1031.50" : um === "m²" ? "850.00" : "5.50"}
+                value={form.precioBaseM2}
+                onChange={(e) =>
+                  setForm({ ...form, precioBaseM2: e.target.value })
+                }
+                className="h-10"
+                onBlur={recalcPrecio}
+              />
+              {errors.precioBaseM2 && (
+                <p className="text-xs text-destructive">{errors.precioBaseM2}</p>
+              )}
+            </div>
+
+            {/* Indicador de utilidad (solo lectura, desde config global) */}
+            <div className="flex items-center gap-2 p-2.5 rounded-md bg-amber-50 border border-amber-200">
+              <div className="flex-1">
+                <p className="text-xs text-amber-800 font-medium">
+                  Utilidad aplicada: {utilidadGlobal}%
+                </p>
+                <p className="text-[10px] text-amber-600">
+                  Configurada en Configuración &gt; Fiscal
                 </p>
               </div>
             </div>
@@ -281,7 +277,7 @@ export function ProductoFormInner({
                     <span>${fmt(baseEjemplo)}</span>
                   </div>
                   <div className="flex justify-between text-amber-700">
-                    <span>+ Utilidad {form.utilidadDefault}%</span>
+                    <span>+ Utilidad {utilidadGlobal}%</span>
                     <span>+${fmt(utilEjemplo)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-[#1e3a5f] pt-1 border-t border-blue-100">
