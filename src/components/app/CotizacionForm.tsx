@@ -76,6 +76,7 @@ export function CotizacionForm() {
   const [loading, setLoading] = useState(true);
 
   // Formulario
+  const [titulo, setTitulo] = useState("");
   const [clienteId, setClienteId] = useState("");
   const [tipoCambio, setTipoCambio] = useState("17.5");
   const [monedaAnticipo, setMonedaAnticipo] = useState<"MXN" | "USD">("MXN");
@@ -206,6 +207,10 @@ export function CotizacionForm() {
       toast.error("Selecciona un cliente");
       return;
     }
+    if (!titulo.trim()) {
+      toast.error("Ingresa el título de la cotización");
+      return;
+    }
     if (items.length === 0) {
       toast.error("Agrega al menos un producto");
       return;
@@ -282,6 +287,7 @@ export function CotizacionForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clienteId,
+          titulo: titulo.trim(),
           tipoCambio: parseFloat(tipoCambio) || 17.5,
           monedaAnticipo,
           items: cotizacionItems,
@@ -311,6 +317,15 @@ export function CotizacionForm() {
 
   const selectedCliente = clientes.find((c) => c.id === clienteId);
 
+  // Preview del nombre compuesto de cotización
+  const tituloCompuesto = useMemo(() => {
+    const partes = ["S0--- Cotización"];
+    if (selectedCliente?.empresa) partes.push(selectedCliente.empresa);
+    else if (selectedCliente?.nombre) partes.push(selectedCliente.nombre);
+    if (titulo.trim()) partes.push(titulo.trim());
+    return partes.join(" - ");
+  }, [selectedCliente, titulo]);
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -337,7 +352,7 @@ export function CotizacionForm() {
         <div>
           <h2 className="text-base font-bold text-[#1e3a5f]">Nueva Cotización</h2>
           <p className="text-[10px] text-muted-foreground">
-            Configuración: IVA {config?.ivaPorcentaje || 8}% · ISR {(config?.retencionISRPorcentaje || 1.25)}% · Vigencia {config?.vigenciaDias || 15} días
+            {tituloCompuesto}
           </p>
         </div>
       </div>
@@ -361,6 +376,22 @@ export function CotizacionForm() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Título de la cotización */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Título de Cotización *</Label>
+            <Input
+              placeholder="Ej: Letrero de plano en Acrilico y PVC"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              className="h-10"
+            />
+            {titulo.trim() && selectedCliente && (
+              <p className="text-[10px] text-[#1e3a5f] font-medium truncate">
+                Vista previa: {tituloCompuesto}
+              </p>
+            )}
           </div>
 
           {/* Tipo de cambio y moneda anticipo */}

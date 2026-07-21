@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { numeroCotizacion: { contains: search } },
+        { titulo: { contains: search } },
         { cliente: { nombre: { contains: search } } },
         { cliente: { empresa: { contains: search } } },
       ];
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items, clienteId, tipoCambio, monedaAnticipo, ...data } = body;
+    const { items, clienteId, titulo, tipoCambio, monedaAnticipo, ...data } = body;
 
     const config = await db.configuracion.findFirst();
     const num = config?.siguienteCotizacionNum || 1348;
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
     const cotizacion = await db.cotizacion.create({
       data: {
         ...data,
+        titulo: titulo || "",
         numeroCotizacion,
         fecha,
         validoHasta,

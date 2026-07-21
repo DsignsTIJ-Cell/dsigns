@@ -37,6 +37,7 @@ model Producto {
 model Cotizacion {
   id              String   @id @default(cuid())
   numeroCotizacion String  @unique // S01347
+  titulo          String   @default("") // "Letrero de plano en Acrilico y PVC"
   fecha           DateTime @default(now())
   validoHasta     DateTime
   tipoCambio      Float    @default(17.5) // DLLS a MXN

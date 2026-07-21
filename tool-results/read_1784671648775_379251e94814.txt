@@ -1,0 +1,706 @@
+     1→"use client";
+     2→
+     3→import { useState, useEffect, useMemo, useCallback } from "react";
+     4→import {
+     5→  ArrowLeft,
+     6→  Plus,
+     7→  Trash2,
+     8→  Loader2,
+     9→  Package,
+    10→  Search,
+    11→  DollarSign,
+    12→  AlertCircle,
+    13→  CheckCircle2,
+    14→} from "lucide-react";
+    15→import { Button } from "@/components/ui/button";
+    16→import { Input } from "@/components/ui/input";
+    17→import { Label } from "@/components/ui/label";
+    18→import { Card, CardContent } from "@/components/ui/card";
+    19→import { Badge } from "@/components/ui/badge";
+    20→import { Separator } from "@/components/ui/separator";
+    21→import { Skeleton } from "@/components/ui/skeleton";
+    22→import {
+    23→  Select,
+    24→  SelectContent,
+    25→  SelectItem,
+    26→  SelectTrigger,
+    27→  SelectValue,
+    28→} from "@/components/ui/select";
+    29→import {
+    30→  Sheet,
+    31→  SheetContent,
+    32→  SheetHeader,
+    33→  SheetTitle,
+    34→  SheetDescription,
+    35→} from "@/components/ui/sheet";
+    36→import { useAppStore } from "@/stores/appStore";
+    37→import { toast } from "sonner";
+    38→import type { Cliente, Producto, CotizacionItem, Configuracion, UnidadMedida } from "@/types";
+    39→import { UNIDADES_MEDIDA, calcularPrecioItem } from "@/types";
+    40→
+    41→interface ItemForm {
+    42→  productoId: string;
+    43→  codigo: string;
+    44→  descripcion: string;
+    45→  tieneDimensiones: boolean;
+    46→  unidadMedida: UnidadMedida;
+    47→  precioBaseM2: number;
+    48→  utilidadPorcentaje: number;
+    49→  alto: string;
+    50→  ancho: string;
+    51→  cantidad: string;
+    52→  opcion: string;
+    53→}
+    54→
+    55→const emptyItem: ItemForm = {
+    56→  productoId: "",
+    57→  codigo: "",
+    58→  descripcion: "",
+    59→  tieneDimensiones: false,
+    60→  unidadMedida: "pie2",
+    61→  precioBaseM2: 0,
+    62→  utilidadPorcentaje: 50,
+    63→  alto: "",
+    64→  ancho: "",
+    65→  cantidad: "1",
+    66→  opcion: "",
+    67→};
+    68→
+    69→export function CotizacionForm() {
+    70→  const { setCreatingCotizacion } = useAppStore();
+    71→
+    72→  // Datos maestros
+    73→  const [clientes, setClientes] = useState<Cliente[]>([]);
+    74→  const [productos, setProductos] = useState<Producto[]>([]);
+    75→  const [config, setConfig] = useState<Configuracion | null>(null);
+    76→  const [loading, setLoading] = useState(true);
+    77→
+    78→  // Formulario
+    79→  const [clienteId, setClienteId] = useState("");
+    80→  const [tipoCambio, setTipoCambio] = useState("17.5");
+    81→  const [monedaAnticipo, setMonedaAnticipo] = useState<"MXN" | "USD">("MXN");
+    82→  const [items, setItems] = useState<ItemForm[]>([]);
+    83→  const [saving, setSaving] = useState(false);
+    84→
+    85→  // Selector de producto
+    86→  const [pickerOpen, setPickerOpen] = useState(false);
+    87→  const [pickerSearch, setPickerSearch] = useState("");
+    88→  const [pickerTargetIdx, setPickerTargetIdx] = useState(-1);
+    89→
+    90→  // Cargar datos maestros
+    91→  useEffect(() => {
+    92→    Promise.all([
+    93→      fetch("/api/clientes").then((r) => r.json()),
+    94→      fetch("/api/productos?activos=true").then((r) => r.json()),
+    95→      fetch("/api/config").then((r) => r.json()),
+    96→    ])
+    97→      .then(([cls, prods, cfg]) => {
+    98→        setClientes(cls);
+    99→        setProductos(prods);
+   100→        setConfig(cfg);
+   101→        setTipoCambio(String(cfg.tipoCambio || 17.5));
+   102→      })
+   103→      .catch(() => toast.error("Error al cargar datos"))
+   104→      .finally(() => setLoading(false));
+   105→  }, []);
+   106→
+   107→  // Agregar item vacío
+   108→  const addItem = useCallback(() => {
+   109→    setItems((prev) => [...prev, { ...emptyItem }]);
+   110→  }, []);
+   111→
+   112→  // Abrir picker para un item
+   113→  const openPicker = (idx: number) => {
+   114→    setPickerTargetIdx(idx);
+   115→    setPickerSearch("");
+   116→    setPickerOpen(true);
+   117→  };
+   118→
+   119→  // Seleccionar producto del picker
+   120→  const selectProducto = (prod: Producto) => {
+   121→    if (pickerTargetIdx < 0) return;
+   122→    setItems((prev) => {
+   123→      const copy = [...prev];
+   124→      copy[pickerTargetIdx] = {
+   125→        ...copy[pickerTargetIdx],
+   126→        productoId: prod.id,
+   127→        codigo: prod.codigo,
+   128→        descripcion: prod.descripcion,
+   129→        tieneDimensiones: prod.tieneDimensiones,
+   130→        unidadMedida: prod.unidadMedida,
+   131→        precioBaseM2: prod.precioBaseM2,
+   132→        utilidadPorcentaje: prod.utilidadDefault,
+   133→        alto: "",
+   134→        ancho: "",
+   135→        cantidad: "1",
+   136→        opcion: "",
+   137→      };
+   138→      return copy;
+   139→    });
+   140→    setPickerOpen(false);
+   141→  };
+   142→
+   143→  // Actualizar campo de un item
+   144→  const updateItem = (idx: number, field: keyof ItemForm, value: string) => {
+   145→    setItems((prev) => {
+   146→      const copy = [...prev];
+   147→      copy[idx] = { ...copy[idx], [field]: value };
+   148→      return copy;
+   149→    });
+   150→  };
+   151→
+   152→  // Eliminar item
+   153→  const removeItem = (idx: number) => {
+   154→    setItems((prev) => prev.filter((_, i) => i !== idx));
+   155→  };
+   156→
+   157→  // Calcular item individual
+   158→  const calcItem = (item: ItemForm) => {
+   159→    if (!item.tieneDimensiones) {
+   160→      const prod = productos.find((p) => p.id === item.productoId);
+   161→      const pu = prod?.precioUnitario || 0;
+   162→      const cant = parseFloat(item.cantidad) || 1;
+   163→      return { precioUnitario: pu, total: pu * cant };
+   164→    }
+   165→    const alto = parseFloat(item.alto) || 0;
+   166→    const ancho = parseFloat(item.ancho) || 0;
+   167→    if (alto === 0 || ancho === 0) return { precioUnitario: 0, total: 0 };
+   168→    const result = calcularPrecioItem({
+   169→      alto,
+   170→      ancho,
+   171→      precioBaseM2: item.precioBaseM2,
+   172→      utilidadPorcentaje: item.utilidadPorcentaje,
+   173→      cantidad: parseFloat(item.cantidad) || 1,
+   174→    });
+   175→    return { precioUnitario: result.precioUnitario, total: result.total };
+   176→  };
+   177→
+   178→  // Resumen
+   179→  const resumen = useMemo(() => {
+   180→    const subtotal = items.reduce((sum, it) => sum + calcItem(it).total, 0);
+   181→    const ivaPct = (config?.ivaPorcentaje || 8) / 100;
+   182→    const isrPct = (config?.retencionISRPorcentaje || 1.25) / 100;
+   183→    const iva = subtotal * ivaPct;
+   184→    const retISR = subtotal * isrPct;
+   185→    const total = subtotal - iva - retISR;
+   186→    const tc = parseFloat(tipoCambio) || 17.5;
+   187→    const anticipo = monedaAnticipo === "USD" ? (total * 0.5) / tc : total * 0.5;
+   188→    const totalUSD = total / tc;
+   189→    return { subtotal, iva, retISR, total, anticipo, totalUSD };
+   190→  }, [items, config, tipoCambio, monedaAnticipo]);
+   191→
+   192→  // Productos filtrados para picker
+   193→  const filteredProducts = useMemo(() => {
+   194→    if (!pickerSearch) return productos;
+   195→    const q = pickerSearch.toLowerCase();
+   196→    return productos.filter(
+   197→      (p) =>
+   198→        p.codigo.toLowerCase().includes(q) ||
+   199→        p.descripcion.toLowerCase().includes(q)
+   200→    );
+   201→  }, [productos, pickerSearch]);
+   202→
+   203→  // Guardar cotización
+   204→  const handleSave = async () => {
+   205→    if (!clienteId) {
+   206→      toast.error("Selecciona un cliente");
+   207→      return;
+   208→    }
+   209→    if (items.length === 0) {
+   210→      toast.error("Agrega al menos un producto");
+   211→      return;
+   212→    }
+   213→
+   214→    // Validar items
+   215→    for (let i = 0; i < items.length; i++) {
+   216→      const it = items[i];
+   217→      if (!it.productoId) {
+   218→        toast.error(`Item ${i + 1}: selecciona un producto`);
+   219→        return;
+   220→      }
+   221→      if (it.tieneDimensiones && (!it.alto || !it.ancho)) {
+   222→        toast.error(`Item ${i + 1}: ingresa alto y ancho`);
+   223→        return;
+   224→      }
+   225→    }
+   226→
+   227→    try {
+   228→      setSaving(true);
+   229→      const cotizacionItems: Record<string, unknown>[] = items.map((it, i) => {
+   230→        if (!it.tieneDimensiones) {
+   231→          const prod = productos.find((p) => p.id === it.productoId);
+   232→          const pu = prod?.precioUnitario || 0;
+   233→          const cant = parseFloat(it.cantidad) || 1;
+   234→          return {
+   235→            codigo: it.codigo,
+   236→            descripcion: it.descripcion,
+   237→            alto: 0,
+   238→            ancho: 0,
+   239→            area: 0,
+   240→            unidadMedida: it.unidadMedida,
+   241→            precioBaseM2: 0,
+   242→            precioBaseTotal: 0,
+   243→            utilidadPorcentaje: 0,
+   244→            montoUtilidad: 0,
+   245→            precioUnitario: pu,
+   246→            cantidad: cant,
+   247→            total: pu * cant,
+   248→            opcion: it.opcion,
+   249→            orden: i,
+   250→          };
+   251→        }
+   252→        const alto = parseFloat(it.alto) || 0;
+   253→        const ancho = parseFloat(it.ancho) || 0;
+   254→        const calc = calcularPrecioItem({
+   255→          alto,
+   256→          ancho,
+   257→          precioBaseM2: it.precioBaseM2,
+   258→          utilidadPorcentaje: it.utilidadPorcentaje,
+   259→          cantidad: parseFloat(it.cantidad) || 1,
+   260→        });
+   261→        return {
+   262→          codigo: it.codigo,
+   263→          descripcion: it.descripcion,
+   264→          alto,
+   265→          ancho,
+   266→          area: calc.area,
+   267→          unidadMedida: it.unidadMedida,
+   268→          precioBaseM2: it.precioBaseM2,
+   269→          precioBaseTotal: calc.precioBaseTotal,
+   270→          utilidadPorcentaje: it.utilidadPorcentaje,
+   271→          montoUtilidad: calc.montoUtilidad,
+   272→          precioUnitario: calc.precioUnitario,
+   273→          cantidad: parseFloat(it.cantidad) || 1,
+   274→          total: calc.total,
+   275→          opcion: it.opcion,
+   276→          orden: i,
+   277→        };
+   278→      });
+   279→
+   280→      const res = await fetch("/api/cotizaciones", {
+   281→        method: "POST",
+   282→        headers: { "Content-Type": "application/json" },
+   283→        body: JSON.stringify({
+   284→          clienteId,
+   285→          tipoCambio: parseFloat(tipoCambio) || 17.5,
+   286→          monedaAnticipo,
+   287→          items: cotizacionItems,
+   288→        }),
+   289→      });
+   290→
+   291→      if (res.ok) {
+   292→        const data = await res.json();
+   293→        toast.success(`Cotización ${data.numeroCotizacion} creada`);
+   294→        setCreatingCotizacion(false);
+   295→      } else {
+   296→        const err = await res.json();
+   297→        toast.error(err.error || "Error al crear");
+   298→      }
+   299→    } catch {
+   300→      toast.error("Error de conexión");
+   301→    } finally {
+   302→      setSaving(false);
+   303→    }
+   304→  };
+   305→
+   306→  const fmt = (n: number) =>
+   307→    n.toLocaleString("es-MX", {
+   308→      minimumFractionDigits: 2,
+   309→      maximumFractionDigits: 2,
+   310→    });
+   311→
+   312→  const selectedCliente = clientes.find((c) => c.id === clienteId);
+   313→
+   314→  if (loading) {
+   315→    return (
+   316→      <div className="space-y-4">
+   317→        <Skeleton className="h-10 w-full" />
+   318→        <Skeleton className="h-10 w-full" />
+   319→        <Skeleton className="h-32 w-full" />
+   320→        <Skeleton className="h-48 w-full" />
+   321→      </div>
+   322→    );
+   323→  }
+   324→
+   325→  return (
+   326→    <div className="space-y-4">
+   327→      {/* Encabezado */}
+   328→      <div className="flex items-center gap-3">
+   329→        <Button
+   330→          variant="ghost"
+   331→          size="icon"
+   332→          className="h-9 w-9"
+   333→          onClick={() => setCreatingCotizacion(false)}
+   334→        >
+   335→          <ArrowLeft size={18} />
+   336→        </Button>
+   337→        <div>
+   338→          <h2 className="text-base font-bold text-[#1e3a5f]">Nueva Cotización</h2>
+   339→          <p className="text-[10px] text-muted-foreground">
+   340→            Configuración: IVA {config?.ivaPorcentaje || 8}% · ISR {(config?.retencionISRPorcentaje || 1.25)}% · Vigencia {config?.vigenciaDias || 15} días
+   341→          </p>
+   342→        </div>
+   343→      </div>
+   344→
+   345→      {/* Datos generales */}
+   346→      <Card>
+   347→        <CardContent className="p-3 space-y-3">
+   348→          {/* Cliente */}
+   349→          <div className="space-y-1.5">
+   350→            <Label className="text-xs font-medium">Cliente *</Label>
+   351→            <Select value={clienteId} onValueChange={setClienteId}>
+   352→              <SelectTrigger className="h-10">
+   353→                <SelectValue placeholder="Seleccionar cliente..." />
+   354→              </SelectTrigger>
+   355→              <SelectContent>
+   356→                {clientes.map((c) => (
+   357→                  <SelectItem key={c.id} value={c.id}>
+   358→                    {c.clienteId} — {c.nombre}
+   359→                    {c.empresa ? ` · ${c.empresa}` : ""}
+   360→                  </SelectItem>
+   361→                ))}
+   362→              </SelectContent>
+   363→            </Select>
+   364→          </div>
+   365→
+   366→          {/* Tipo de cambio y moneda anticipo */}
+   367→          <div className="grid grid-cols-2 gap-3">
+   368→            <div className="space-y-1.5">
+   369→              <Label className="text-xs flex items-center gap-1">
+   370→                <DollarSign size={12} /> Tipo de Cambio
+   371→              </Label>
+   372→              <Input
+   373→                type="number"
+   374→                step="0.01"
+   375→                value={tipoCambio}
+   376→                onChange={(e) => setTipoCambio(e.target.value)}
+   377→                className="h-10"
+   378→              />
+   379→              <p className="text-[10px] text-muted-foreground">1 USD = $MXN</p>
+   380→            </div>
+   381→            <div className="space-y-1.5">
+   382→              <Label className="text-xs">Moneda del Anticipo (50%)</Label>
+   383→              <Select
+   384→                value={monedaAnticipo}
+   385→                onValueChange={(v) => setMonedaAnticipo(v as "MXN" | "USD")}
+   386→              >
+   387→                <SelectTrigger className="h-10">
+   388→                  <SelectValue />
+   389→                </SelectTrigger>
+   390→                <SelectContent>
+   391→                  <SelectItem value="MXN">MXN - Pesos</SelectItem>
+   392→                  <SelectItem value="USD">USD - Dólares</SelectItem>
+   393→                </SelectContent>
+   394→              </Select>
+   395→            </div>
+   396→          </div>
+   397→
+   398→          {selectedCliente && (
+   399→            <div className="bg-blue-50 rounded-md p-2.5 text-xs space-y-0.5">
+   400→              <p className="font-medium text-[#1e3a5f]">{selectedCliente.nombre}</p>
+   401→              {selectedCliente.empresa && (
+   402→                <p className="text-muted-foreground">{selectedCliente.empresa}</p>
+   403→              )}
+   404→              {selectedCliente.telefono && (
+   405→                <p className="text-muted-foreground">Tel: {selectedCliente.telefono}</p>
+   406→              )}
+   407→              {selectedCliente.email && (
+   408→                <p className="text-muted-foreground">{selectedCliente.email}</p>
+   409→              )}
+   410→            </div>
+   411→          )}
+   412→        </CardContent>
+   413→      </Card>
+   414→
+   415→      {/* Items */}
+   416→      <div className="space-y-2">
+   417→        <div className="flex items-center justify-between">
+   418→          <h3 className="text-sm font-semibold">Productos / Servicios</h3>
+   419→          <Badge variant="secondary" className="text-[10px]">
+   420→            {items.length} item(s)
+   421→          </Badge>
+   422→        </div>
+   423→
+   424→        {items.length === 0 ? (
+   425→          <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+   426→            <Package size={32} className="mx-auto text-muted-foreground/30 mb-2" />
+   427→            <p className="text-sm text-muted-foreground">Sin productos</p>
+   428→            <Button
+   429→              onClick={addItem}
+   430→              variant="outline"
+   431→              className="mt-3 gap-2 text-xs"
+   432→            >
+   433→              <Plus size={14} /> Agregar producto
+   434→            </Button>
+   435→          </div>
+   436→        ) : (
+   437→          <div className="space-y-3">
+   438→            {items.map((item, idx) => {
+   439→              const calc = calcItem(item);
+   440→              const um = UNIDADES_MEDIDA[item.unidadMedida] || "";
+   441→              return (
+   442→                <Card key={idx} className="overflow-hidden">
+   443→                  <CardContent className="p-3 space-y-3">
+   444→                    {/* Encabezado del item */}
+   445→                    <div className="flex items-start gap-2">
+   446→                      <div className="flex-1 min-w-0">
+   447→                        {/* Selector de producto */}
+   448→                        {!item.productoId ? (
+   449→                          <Button
+   450→                            variant="outline"
+   451→                            className="w-full h-9 text-xs justify-start gap-2 border-dashed"
+   452→                            onClick={() => openPicker(idx)}
+   453→                          >
+   454→                            <Search size={14} /> Seleccionar producto...
+   455→                          </Button>
+   456→                        ) : (
+   457→                          <div
+   458→                            className="cursor-pointer hover:bg-gray-50 rounded-md p-1.5 -m-1.5"
+   459→                            onClick={() => openPicker(idx)}
+   460→                          >
+   461→                            <div className="flex items-center gap-2">
+   462→                              <Badge className="text-[10px] bg-blue-50 text-[#1e3a5f]">
+   463→                                {item.codigo}
+   464→                              </Badge>
+   465→                              {item.tieneDimensiones && (
+   466→                                <Badge variant="outline" className="text-[10px]">
+   467→                                  {um}
+   468→                                </Badge>
+   469→                              )}
+   470→                            </div>
+   471→                            <p className="text-xs mt-0.5 truncate">{item.descripcion}</p>
+   472→                          </div>
+   473→                        )}
+   474→                      </div>
+   475→                      <Button
+   476→                        variant="ghost"
+   477→                        size="icon"
+   478→                        className="h-8 w-8 text-destructive shrink-0"
+   479→                        onClick={() => removeItem(idx)}
+   480→                      >
+   481→                        <Trash2 size={14} />
+   482→                      </Button>
+   483→                    </div>
+   484→
+   485→                    {/* Campos según tipo */}
+   486→                    {item.productoId && !item.tieneDimensiones && (
+   487→                      <div className="grid grid-cols-2 gap-3">
+   488→                        <div className="space-y-1">
+   489→                          <Label className="text-[10px]">Precio Unitario</Label>
+   490→                          <p className="text-sm font-bold text-[#1e3a5f]">
+   491→                            ${fmt(productos.find((p) => p.id === item.productoId)?.precioUnitario || 0)}
+   492→                          </p>
+   493→                        </div>
+   494→                        <div className="space-y-1">
+   495→                          <Label className="text-[10px]">Cantidad</Label>
+   496→                          <Input
+   497→                            type="number"
+   498→                            min="1"
+   499→                            value={item.cantidad}
+   500→                            onChange={(e) => updateItem(idx, "cantidad", e.target.value)}
+   501→                            className="h-9 text-sm"
+   502→                          />
+   503→                        </div>
+   504→                      </div>
+   505→                    )}
+   506→
+   507→                    {item.productoId && item.tieneDimensiones && (
+   508→                      <div className="space-y-3">
+   509→                        <div className="grid grid-cols-3 gap-2">
+   510→                          <div className="space-y-1">
+   511→                            <Label className="text-[10px]">Alto ({um.replace("²", "")})</Label>
+   512→                            <Input
+   513→                              type="number"
+   514→                              step="0.01"
+   515→                              placeholder="0"
+   516→                              value={item.alto}
+   517→                              onChange={(e) => updateItem(idx, "alto", e.target.value)}
+   518→                              className="h-9 text-sm"
+   519→                            />
+   520→                          </div>
+   521→                          <div className="space-y-1">
+   522→                            <Label className="text-[10px]">Ancho ({um.replace("²", "")})</Label>
+   523→                            <Input
+   524→                              type="number"
+   525→                              step="0.01"
+   526→                              placeholder="0"
+   527→                              value={item.ancho}
+   528→                              onChange={(e) => updateItem(idx, "ancho", e.target.value)}
+   529→                              className="h-9 text-sm"
+   530→                            />
+   531→                          </div>
+   532→                          <div className="space-y-1">
+   533→                            <Label className="text-[10px]">Cantidad</Label>
+   534→                            <Input
+   535→                              type="number"
+   536→                              min="1"
+   537→                              value={item.cantidad}
+   538→                              onChange={(e) => updateItem(idx, "cantidad", e.target.value)}
+   539→                              className="h-9 text-sm"
+   540→                            />
+   541→                          </div>
+   542→                        </div>
+   543→
+   544→                        {/* Opción label */}
+   545→                        <div className="space-y-1">
+   546→                          <Label className="text-[10px]">Opción (opcional)</Label>
+   547→                          <Input
+   548→                            placeholder="Opción 1, Opción 2..."
+   549→                            value={item.opcion}
+   550→                            onChange={(e) => updateItem(idx, "opcion", e.target.value)}
+   551→                            className="h-8 text-xs"
+   552→                          />
+   553→                        </div>
+   554→
+   555→                        {/* Cálculo en vivo */}
+   556→                        {(parseFloat(item.alto) > 0 && parseFloat(item.ancho) > 0) && (
+   557→                          <div className="bg-gray-50 rounded-md p-2 space-y-0.5 text-[11px]">
+   558→                            <div className="flex justify-between">
+   559→                              <span className="text-muted-foreground">
+   560→                                {fmt(parseFloat(item.alto) * parseFloat(item.ancho))} {um} x ${fmt(item.precioBaseM2)}
+   561→                              </span>
+   562→                              <span>${fmt(calc.precioUnitario * (1 - item.utilidadPorcentaje / (100 + item.utilidadPorcentaje)))}</span>
+   563→                            </div>
+   564→                            <div className="flex justify-between text-amber-700">
+   565→                              <span>+ Utilidad {item.utilidadPorcentaje}%</span>
+   566→                              <span>
+   567→                                +${fmt(calc.precioUnitario * (item.utilidadPorcentaje / (100 + item.utilidadPorcentaje)))}
+   568→                              </span>
+   569→                            </div>
+   570→                            <div className="flex justify-between font-bold pt-1 border-t border-gray-200">
+   571→                              <span>
+   572→                                Unitario x {item.cantidad || 1}
+   573→                              </span>
+   574→                              <span className="text-[#1e3a5f]">${fmt(calc.total)}</span>
+   575→                            </div>
+   576→                          </div>
+   577→                        )}
+   578→                      </div>
+   579→                    )}
+   580→                  </CardContent>
+   581→                </Card>
+   582→              );
+   583→            })}
+   584→
+   585→            {/* Botón agregar */}
+   586→            <Button
+   587→              variant="outline"
+   588→              className="w-full h-9 gap-2 text-xs border-dashed"
+   589→              onClick={addItem}
+   590→            >
+   591→              <Plus size={14} /> Agregar otro producto
+   592→            </Button>
+   593→          </div>
+   594→        )}
+   595→      </div>
+   596→
+   597→      {/* Resumen financiero */}
+   598→      {items.length > 0 && (
+   599→        <Card className="border-[#1e3a5f]/20">
+   600→          <CardContent className="p-3 space-y-2">
+   601→            <h3 className="text-sm font-semibold text-[#1e3a5f]">Resumen</h3>
+   602→            <div className="space-y-1 text-xs">
+   603→              <div className="flex justify-between">
+   604→                <span className="text-muted-foreground">Subtotal</span>
+   605→                <span>${fmt(resumen.subtotal)}</span>
+   606→              </div>
+   607→              <div className="flex justify-between text-red-600">
+   608→                <span>- IVA ({config?.ivaPorcentaje || 8}%)</span>
+   609→                <span>-${fmt(resumen.iva)}</span>
+   610→              </div>
+   611→              <div className="flex justify-between text-red-600">
+   612→                <span>- Ret. ISR ({config?.retencionISRPorcentaje || 1.25}%)</span>
+   613→                <span>-${fmt(resumen.retISR)}</span>
+   614→              </div>
+   615→              <Separator />
+   616→              <div className="flex justify-between text-sm font-bold">
+   617→                <span>Total</span>
+   618→                <span className="text-[#1e3a5f]">${fmt(resumen.total)}</span>
+   619→              </div>
+   620→              <div className="flex justify-between text-green-700">
+   621→                <span>Anticipo 50% ({monedaAnticipo})</span>
+   622→                <span>${fmt(resumen.anticipo)} {monedaAnticipo}</span>
+   623→              </div>
+   624→              <div className="flex justify-between text-muted-foreground">
+   625→                <span>Saldo</span>
+   626→                <span>
+   627→                  ${fmt(resumen.total - resumen.anticipo)} {monedaAnticipo === "MXN" ? "MXN" : "MXN"}
+   628→                </span>
+   629→              </div>
+   630→              <div className="flex justify-between text-muted-foreground">
+   631→                <span>Equiv. USD (total)</span>
+   632→                <span>${fmt(resumen.totalUSD)} USD</span>
+   633→              </div>
+   634→            </div>
+   635→          </CardContent>
+   636→        </Card>
+   637→      )}
+   638→
+   639→      {/* Botón guardar */}
+   640→      <Button
+   641→        onClick={handleSave}
+   642→        disabled={saving || items.length === 0}
+   643→        className="w-full h-12 bg-[#1e3a5f] hover:bg-[#2a5082] gap-2 text-sm font-semibold"
+   644→      >
+   645→        {saving ? (
+   646→          <Loader2 size={18} className="animate-spin" />
+   647→        ) : (
+   648→          <CheckCircle2 size={18} />
+   649→        )}
+   650→        {saving ? "Guardando..." : "Crear Cotización"}
+   651→      </Button>
+   652→
+   653→      {/* Sheet: Selector de productos */}
+   654→      <Sheet open={pickerOpen} onOpenChange={setPickerOpen}>
+   655→        <SheetContent side="bottom" className="max-h-[70vh]">
+   656→          <SheetHeader className="pb-2">
+   657→            <SheetTitle className="text-sm">Seleccionar Producto</SheetTitle>
+   658→            <SheetDescription className="text-xs">
+   659→              {filteredProducts.length} producto(s) disponible(s)
+   660→            </SheetDescription>
+   661→          </SheetHeader>
+   662→          <div className="relative mb-3">
+   663→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+   664→            <Input
+   665→              placeholder="Buscar por código o descripción..."
+   666→              value={pickerSearch}
+   667→              onChange={(e) => setPickerSearch(e.target.value)}
+   668→              className="pl-9 h-9 text-sm"
+   669→              autoFocus
+   670→            />
+   671→          </div>
+   672→          <div className="overflow-y-auto max-h-[45vh] space-y-1.5">
+   673→            {filteredProducts.length === 0 ? (
+   674→              <p className="text-center text-xs text-muted-foreground py-6">
+   675→                No se encontraron productos
+   676→              </p>
+   677→            ) : (
+   678→              filteredProducts.map((prod) => (
+   679→                <button
+   680→                  key={prod.id}
+   681→                  onClick={() => selectProducto(prod)}
+   682→                  className="w-full text-left p-2.5 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors"
+   683→                >
+   684→                  <div className="flex items-center gap-2 mb-0.5">
+   685→                    <Badge className="text-[10px] bg-blue-50 text-[#1e3a5f]">
+   686→                      {prod.codigo}
+   687→                    </Badge>
+   688→                    {prod.tieneDimensiones && (
+   689→                      <Badge variant="outline" className="text-[10px]">
+   690→                        {UNIDADES_MEDIDA[prod.unidadMedida]}
+   691→                      </Badge>
+   692→                    )}
+   693→                    <span className="text-[10px] text-green-700 ml-auto font-medium">
+   694→                      ${fmt(prod.precioBaseM2)}/{UNIDADES_MEDIDA[prod.unidadMedida]}
+   695→                    </span>
+   696→                  </div>
+   697→                  <p className="text-xs truncate">{prod.descripcion}</p>
+   698→                </button>
+   699→              ))
+   700→            )}
+   701→          </div>
+   702→        </SheetContent>
+   703→      </Sheet>
+   704→    </div>
+   705→  );
+   706→}
