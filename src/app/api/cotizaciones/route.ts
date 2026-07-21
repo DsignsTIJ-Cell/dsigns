@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items, clienteId, tipoCambio, ...data } = body;
+    const { items, clienteId, tipoCambio, monedaAnticipo, ...data } = body;
 
     const config = await db.configuracion.findFirst();
     const num = config?.siguienteCotizacionNum || 1348;
@@ -57,7 +57,8 @@ export async function POST(request: Request) {
     const retISR = subtotal * isrPct;
     const total = subtotal - iva - retISR;
     const tc = tipoCambio || 17.5;
-    const anticipoUSD = (total * 0.5) / tc;
+    const moneda = monedaAnticipo || "MXN";
+    const anticipo = moneda === "USD" ? (total * 0.5) / tc : total * 0.5;
     const totalUSD = total / tc;
 
     const cotizacion = await db.cotizacion.create({
@@ -72,7 +73,8 @@ export async function POST(request: Request) {
         iva,
         retISR,
         total,
-        anticipoUSD,
+        anticipo,
+        monedaAnticipo: moneda,
         totalUSD,
         clienteId,
         items: {
@@ -128,6 +130,8 @@ export async function PUT(request: Request) {
       const retISR = subtotal * isrPct;
       const total = subtotal - iva - retISR;
       const tc = Number(data.tipoCambio) || 17.5;
+      const moneda = data.monedaAnticipo || "MXN";
+      const anticipo = moneda === "USD" ? (total * 0.5) / tc : total * 0.5;
 
       const cotizacion = await db.cotizacion.update({
         where: { id },
@@ -137,7 +141,8 @@ export async function PUT(request: Request) {
           iva,
           retISR,
           total,
-          anticipoUSD: (total * 0.5) / tc,
+          anticipo,
+          monedaAnticipo: moneda,
           totalUSD: total / tc,
           items: {
             create: items.map((item: Record<string, unknown>, i: number) => ({

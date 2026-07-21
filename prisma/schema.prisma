@@ -47,8 +47,9 @@ model Cotizacion {
   iva             Float    @default(0)
   retISR          Float    @default(0)
   total           Float    @default(0)
-  anticipoUSD     Float    @default(0)
-  totalUSD        Float    @default(0)
+  anticipo        Float    @default(0) // 50% del total
+  monedaAnticipo  String   @default("MXN") // MXN o USD
+  totalUSD        Float    @default(0) // equivalente en USD
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

@@ -107,7 +107,8 @@ export interface Cotizacion {
   iva: number;
   retISR: number;
   total: number;
-  anticipoUSD: number;
+  anticipo: number;
+  monedaAnticipo: "MXN" | "USD";
   totalUSD: number;
   cliente?: Cliente;
   items: CotizacionItem[];
