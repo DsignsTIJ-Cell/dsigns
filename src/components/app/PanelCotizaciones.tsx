@@ -22,7 +22,7 @@ const mockData = [
 ];
 
 export function PanelCotizaciones() {
-  const { searchQuery, setSearchQuery } = useAppStore();
+  const { searchQuery, setSearchQuery, setCreatingCotizacion } = useAppStore();
 
   return (
     <div className="space-y-4">
@@ -40,7 +40,7 @@ export function PanelCotizaciones() {
         <Button variant="outline" size="icon" className="h-10 w-10 shrink-0">
           <Filter size={16} />
         </Button>
-        <Button className="h-10 bg-[#1e3a5f] hover:bg-[#2a5082] shrink-0 gap-2">
+        <Button onClick={() => setCreatingCotizacion(true)} className="h-10 bg-[#1e3a5f] hover:bg-[#2a5082] shrink-0 gap-2">
           <Plus size={18} />
           <span className="hidden sm:inline">Nueva</span>
         </Button>

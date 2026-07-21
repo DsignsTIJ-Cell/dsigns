@@ -8,6 +8,7 @@ import { PanelCatalogo } from "@/components/app/PanelCatalogo";
 import { PanelClientes } from "@/components/app/PanelClientes";
 import { PanelReportes } from "@/components/app/PanelReportes";
 import { PanelConfiguracion } from "@/components/app/PanelConfiguracion";
+import { CotizacionForm } from "@/components/app/CotizacionForm";
 
 const panels: Record<string, React.ReactNode> = {
   cotizaciones: <PanelCotizaciones />,
@@ -18,13 +19,17 @@ const panels: Record<string, React.ReactNode> = {
 };
 
 export default function Home() {
-  const { activeTab } = useAppStore();
+  const { activeTab, creatingCotizacion } = useAppStore();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <AppHeader />
       <main className="flex-1 px-4 py-4 pb-24">
-        {panels[activeTab]}
+        {activeTab === "cotizaciones" && creatingCotizacion ? (
+          <CotizacionForm />
+        ) : (
+          panels[activeTab]
+        )}
       </main>
       <BottomNav />
     </div>

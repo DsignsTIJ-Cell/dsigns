@@ -88,3 +88,30 @@ Stage Summary:
 - Archivos creados/modificados: ClienteForm.tsx (nuevo), PanelClientes.tsx (reescrito)
 - API /api/clientes ya existia con GET/POST/PUT/DELETE
 
+
+---
+Task ID: 4
+Agent: main
+Task: Paso 4 - Creacion de cotizaciones (nucleo)
+
+Work Log:
+- Actualizado appStore.ts con estados creatingCotizacion y editingCotizacionId
+- Creado CotizacionForm.tsx: formulario completo de creacion de cotizaciones
+  - Seleccion de cliente via dropdown
+  - Tipo de cambio editable
+  - Desplegable MXN/USD para moneda del anticipo (50%)
+  - Agregar productos via Sheet bottom con busqueda
+  - Para productos dimensionales: campos alto x ancho con calculo en vivo
+  - Para productos fijos: cantidad con precio unitario del catalogo
+  - Etiqueta de Opcion (Opcion 1, Opcion 2...) para agrupar items
+  - Resumen financiero: subtotal, IVA, ISR, total, anticipo, saldo, equiv USD
+  - Validacion antes de enviar
+- Actualizado page.tsx para mostrar CotizacionForm cuando creatingCotizacion=true
+- Conectado boton "Nueva" en PanelCotizaciones con setCreatingCotizacion(true)
+- Build compila sin errores
+
+Stage Summary:
+- Formulario de cotizacion completamente funcional
+- Archivos nuevos: CotizacionForm.tsx
+- Archivos modificados: appStore.ts, page.tsx, PanelCotizaciones.tsx
+- Falta: Paso 6 (historial real de cotizaciones en vez de mock data) y Paso 5 (PDF)
