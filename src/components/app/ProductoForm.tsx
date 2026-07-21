@@ -22,7 +22,12 @@ import {
   DrawerFooter,
   DrawerDescription,
 } from "@/components/ui/drawer";
-import type { Producto } from "@/types";
+import {
+  UNIDADES_MEDIDA_OPTIONS,
+  UNIDADES_MEDIDA,
+  type Producto,
+  type UnidadMedida,
+} from "@/types";
 
 interface ProductoFormProps {
   open: boolean;
@@ -37,6 +42,7 @@ const emptyForm = {
   descripcion: "",
   precioBaseM2: "",
   tieneDimensiones: true,
+  unidadMedida: "pie2" as UnidadMedida,
   utilidadDefault: "50",
   precioUnitario: "",
 };
@@ -48,11 +54,21 @@ function buildInitialForm(producto?: Producto | null) {
       descripcion: producto.descripcion,
       precioBaseM2: String(producto.precioBaseM2 || ""),
       tieneDimensiones: producto.tieneDimensiones,
+      unidadMedida: (producto.unidadMedida || "pie2") as UnidadMedida,
       utilidadDefault: String(producto.utilidadDefault),
       precioUnitario: String(producto.precioUnitario || ""),
     };
   }
   return { ...emptyForm };
+}
+
+function getEjemploArea(unidad: UnidadMedida): { alto: number; ancho: number; label: string } {
+  switch (unidad) {
+    case "cm2": return { alto: 120, ancho: 90, label: "120 x 90 cm = 10,800 cm²" };
+    case "m2": return { alto: 1.2, ancho: 0.9, label: "1.2 x 0.9 m = 1.08 m²" };
+    case "in2": return { alto: 48, ancho: 36, label: "48 x 36 in = 1,728 in²" };
+    case "pie2": return { alto: 4, ancho: 3, label: "4 x 3 pies = 12 pie²" };
+  }
 }
 
 export function ProductoFormInner({
@@ -73,7 +89,11 @@ export function ProductoFormInner({
       e.precioUnitario = "Ingresa el precio fijo";
     }
     if (form.tieneDimensiones && !form.precioBaseM2) {
-      e.precioBaseM2 = "Ingresa el precio base por m2";
+      e.precioBaseM2 = `Ingresa el precio base por ${UNIDADES_MEDIDA[form.unidadMedida]}`;
+    }
+    const util = parseFloat(form.utilidadDefault);
+    if (isNaN(util) || util < 0 || util > 999) {
+      e.utilidadDefault = "Ingresa un porcentaje válido (0-999)";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -83,8 +103,9 @@ export function ProductoFormInner({
     if (form.tieneDimensiones && form.precioBaseM2 && form.utilidadDefault) {
       const pb = parseFloat(form.precioBaseM2) || 0;
       const util = parseFloat(form.utilidadDefault) || 0;
-      const ejemploArea = 12;
-      const base = pb * ejemploArea;
+      const { alto, ancho } = getEjemploArea(form.unidadMedida);
+      const area = alto * ancho;
+      const base = pb * area;
       const conUtilidad = base + base * (util / 100);
       setForm((f) => ({ ...f, precioUnitario: String(conUtilidad.toFixed(2)) }));
     }
@@ -92,23 +113,28 @@ export function ProductoFormInner({
 
   const handleSubmit = () => {
     if (!validate()) return;
-    const precioBaseM2 = form.tieneDimensiones
-      ? parseFloat(form.precioBaseM2) || 0
-      : 0;
-    const precioUnitario = form.tieneDimensiones
-      ? parseFloat(form.precioUnitario) || 0
-      : parseFloat(form.precioUnitario) || 0;
     onSave({
       ...(isEdit ? { id: producto!.id } : {}),
       codigo: form.codigo.trim().toUpperCase(),
       descripcion: form.descripcion.trim(),
-      precioBaseM2,
+      precioBaseM2: form.tieneDimensiones ? (parseFloat(form.precioBaseM2) || 0) : 0,
       tieneDimensiones: form.tieneDimensiones,
+      unidadMedida: form.unidadMedida,
       utilidadDefault: parseFloat(form.utilidadDefault) || 50,
-      precioUnitario,
+      precioUnitario: parseFloat(form.precioUnitario) || 0,
       activo: true,
     });
   };
+
+  const ejemplo = getEjemploArea(form.unidadMedida);
+  const areaEjemplo = ejemplo.alto * ejemplo.ancho;
+  const pb = parseFloat(form.precioBaseM2) || 0;
+  const util = parseFloat(form.utilidadDefault) || 0;
+  const baseEjemplo = pb * areaEjemplo;
+  const utilEjemplo = baseEjemplo * (util / 100);
+  const totalEjemplo = baseEjemplo + utilEjemplo;
+  const um = UNIDADES_MEDIDA[form.unidadMedida];
+  const fmt = (n: number) => n.toLocaleString("es-MX", { minimumFractionDigits: 2 });
 
   return (
     <>
@@ -178,13 +204,36 @@ export function ProductoFormInner({
               Configuración de precio por dimensiones
             </p>
 
+            {/* Unidad de medida */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Unidad de Medida</Label>
+              <Select
+                value={form.unidadMedida}
+                onValueChange={(v) => {
+                  setForm({ ...form, unidadMedida: v as UnidadMedida, precioUnitario: "" });
+                  setTimeout(recalcPrecio, 0);
+                }}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNIDADES_MEDIDA_OPTIONS.map((u) => (
+                    <SelectItem key={u.value} value={u.value}>
+                      {u.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Precio Base/m2 *</Label>
+                <Label className="text-xs">Precio Base por {um} *</Label>
                 <Input
                   type="number"
                   step="0.01"
-                  placeholder="1031.50"
+                  placeholder={um === "pie²" ? "1031.50" : um === "m²" ? "850.00" : "5.50"}
                   value={form.precioBaseM2}
                   onChange={(e) =>
                     setForm({ ...form, precioBaseM2: e.target.value })
@@ -198,66 +247,46 @@ export function ProductoFormInner({
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Utilidad (%)</Label>
-                <Select
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="999"
+                  placeholder="50"
                   value={form.utilidadDefault}
-                  onValueChange={(v) => {
-                    setForm({ ...form, utilidadDefault: v });
-                    setTimeout(recalcPrecio, 0);
-                  }}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="50">50%</SelectItem>
-                    <SelectItem value="65">65%</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(e) =>
+                    setForm({ ...form, utilidadDefault: e.target.value })
+                  }
+                  className="h-10"
+                  onBlur={recalcPrecio}
+                />
+                {errors.utilidadDefault && (
+                  <p className="text-xs text-destructive">{errors.utilidadDefault}</p>
+                )}
+                <p className="text-[10px] text-muted-foreground">
+                  Escribe cualquier % (ej: 50, 65, 30...)
+                </p>
               </div>
             </div>
 
+            {/* Cálculo de ejemplo dinámico */}
             {form.precioBaseM2 && (
               <div className="bg-white rounded-md p-2.5 space-y-1">
                 <p className="text-[10px] text-muted-foreground font-medium">
-                  Ejemplo de cálculo (4 x 3 pies = 12 pies²)
+                  Ejemplo: {ejemplo.label}
                 </p>
                 <div className="text-[11px] space-y-0.5">
                   <div className="flex justify-between">
-                    <span>12 pies² x ${form.precioBaseM2}</span>
-                    <span>
-                      $
-                      {(
-                        12 * (parseFloat(form.precioBaseM2) || 0)
-                      ).toLocaleString("es-MX", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
+                    <span>{fmt(areaEjemplo)} {um} x ${form.precioBaseM2}</span>
+                    <span>${fmt(baseEjemplo)}</span>
                   </div>
                   <div className="flex justify-between text-amber-700">
                     <span>+ Utilidad {form.utilidadDefault}%</span>
-                    <span>
-                      +$
-                      {(
-                        12 *
-                        (parseFloat(form.precioBaseM2) || 0) *
-                        ((parseFloat(form.utilidadDefault) || 0) / 100)
-                      ).toLocaleString("es-MX", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
+                    <span>+${fmt(utilEjemplo)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-[#1e3a5f] pt-1 border-t border-blue-100">
                     <span>Precio de referencia</span>
-                    <span>
-                      $
-                      {(
-                        12 *
-                        (parseFloat(form.precioBaseM2) || 0) *
-                        (1 + (parseFloat(form.utilidadDefault) || 0) / 100)
-                      ).toLocaleString("es-MX", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
+                    <span>${fmt(totalEjemplo)}</span>
                   </div>
                 </div>
               </div>
@@ -313,7 +342,6 @@ export function ProductoForm(props: ProductoFormProps) {
   return (
     <Drawer open={props.open} onOpenChange={props.onOpenChange}>
       <DrawerContent>
-        {/* key forces remount when producto changes, resetting all state */}
         <ProductoFormInner
           key={props.producto?.id ?? "new"}
           producto={props.producto}

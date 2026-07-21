@@ -13,6 +13,7 @@ import {
   MoreVertical,
   EyeOff,
   Eye,
+  Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ import { useAppStore } from "@/stores/appStore";
 import { toast } from "sonner";
 import { ProductoForm } from "./ProductoForm";
 import type { Producto } from "@/types";
+import { UNIDADES_MEDIDA } from "@/types";
 
 export function PanelCatalogo() {
   const { searchQuery, setSearchQuery } = useAppStore();
@@ -274,6 +276,14 @@ export function PanelCatalogo() {
                             <Ruler size={10} /> Medible
                           </Badge>
                         )}
+                        {prod.tieneDimensiones && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 gap-0.5"
+                          >
+                            <Square size={10} /> {UNIDADES_MEDIDA[prod.unidadMedida] || prod.unidadMedida}
+                          </Badge>
+                        )}
                         <Badge
                           variant="outline"
                           className="text-[10px] px-1.5 py-0 gap-0.5"
@@ -342,7 +352,7 @@ export function PanelCatalogo() {
                       <>
                         <div className="bg-gray-50 rounded-md px-2.5 py-1.5">
                           <p className="text-[10px] text-muted-foreground leading-tight">
-                            Precio Base/m2
+                            Precio Base/{UNIDADES_MEDIDA[prod.unidadMedida] || prod.unidadMedida}
                           </p>
                           <p className="text-xs font-semibold">
                             ${fmt(prod.precioBaseM2)}
@@ -353,14 +363,7 @@ export function PanelCatalogo() {
                             Utilidad {prod.utilidadDefault}%
                           </p>
                           <p className="text-xs font-semibold text-[#1e3a5f]">
-                            ${
-                              fmt(
-                                12 *
-                                  prod.precioBaseM2 *
-                                  (prod.utilidadDefault / 100)
-                              )
-                            }
-                            /12pies²
+                            ${fmt(prod.precioBaseM2 * prod.utilidadDefault / 100)}/{UNIDADES_MEDIDA[prod.unidadMedida] || prod.unidadMedida}
                           </p>
                         </div>
                       </>

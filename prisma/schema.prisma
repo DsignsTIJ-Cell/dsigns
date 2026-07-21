@@ -24,9 +24,10 @@ model Producto {
   id              String   @id @default(cuid())
   codigo          String   @unique // A0514
   descripcion     String   // Impresión en acrilico de 3mm...
-  precioBaseM2    Float    @default(0) // Precio por metro cuadrado (o precio unitario base)
+  precioBaseM2    Float    @default(0) // Precio por unidad de área
   tieneDimensiones Boolean  @default(false) // Si requiere alto x ancho para calcular precio
-  utilidadDefault Float    @default(50) // Porcentaje de utilidad por defecto (50% o 65%)
+  unidadMedida    String   @default("pie2") // cm2, m2, in2, pie2
+  utilidadDefault Float    @default(50) // Porcentaje de utilidad por defecto (cualquier valor)
   precioUnitario  Float    // Precio final con utilidad (se calcula o se fija manualmente)
   activo          Boolean  @default(true)
   createdAt       DateTime @default(now())
@@ -64,12 +65,13 @@ model CotizacionItem {
   cotizacionId    String
   codigo          String  @default("")
   descripcion     String
-  alto            Float   @default(0) // Alto en pies/metros
-  ancho           Float   @default(0) // Ancho en pies/metros
-  area            Float   @default(0) // alto x ancho (calculado)
-  precioBaseM2    Float   @default(0) // Precio base por m2 o unitario
+  alto            Float   @default(0) //
+  ancho           Float   @default(0) //
+  area               Float   @default(0) // alto x ancho (calculado)
+  unidadMedida       String  @default("pie2") // cm2, m2, in2, pie2
+  precioBaseM2       Float   @default(0) // Precio base por unidad de area
   precioBaseTotal Float   @default(0) // area x precioBaseM2
-  utilidadPorcentaje Float @default(50) // 50% o 65%
+  utilidadPorcentaje Float @default(50) // Cualquier valor, variable por item
   montoUtilidad   Float   @default(0) // precioBaseTotal x (utilidad/100)
   precioUnitario  Float   // precioBaseTotal + montoUtilidad
   cantidad        Float
