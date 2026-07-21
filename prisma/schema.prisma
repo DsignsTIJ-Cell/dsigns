@@ -21,13 +21,16 @@ model Cliente {
 }
 
 model Producto {
-  id            String   @id @default(cuid())
-  codigo        String   @unique // A0514
-  descripcion   String   // Impresión en acrilico de 3mm...
-  precioUnitario Float   // 6189.00
-  activo        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(cuid())
+  codigo          String   @unique // A0514
+  descripcion     String   // Impresión en acrilico de 3mm...
+  precioBaseM2    Float    @default(0) // Precio por metro cuadrado (o precio unitario base)
+  tieneDimensiones Boolean  @default(false) // Si requiere alto x ancho para calcular precio
+  utilidadDefault Float    @default(50) // Porcentaje de utilidad por defecto (50% o 65%)
+  precioUnitario  Float    // Precio final con utilidad (se calcula o se fija manualmente)
+  activo          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Cotizacion {
@@ -57,15 +60,22 @@ model Cotizacion {
 }
 
 model CotizacionItem {
-  id            String  @id @default(cuid())
-  cotizacionId  String
-  codigo        String  @default("")
-  descripcion   String
-  precioUnitario Float
-  cantidad      Float
-  total         Float
-  opcion        String  @default("") // "Opción 1", "Opción 2", etc.
-  orden         Int     @default(0)
+  id              String  @id @default(cuid())
+  cotizacionId    String
+  codigo          String  @default("")
+  descripcion     String
+  alto            Float   @default(0) // Alto en pies/metros
+  ancho           Float   @default(0) // Ancho en pies/metros
+  area            Float   @default(0) // alto x ancho (calculado)
+  precioBaseM2    Float   @default(0) // Precio base por m2 o unitario
+  precioBaseTotal Float   @default(0) // area x precioBaseM2
+  utilidadPorcentaje Float @default(50) // 50% o 65%
+  montoUtilidad   Float   @default(0) // precioBaseTotal x (utilidad/100)
+  precioUnitario  Float   // precioBaseTotal + montoUtilidad
+  cantidad        Float
+  total           Float   // precioUnitario x cantidad
+  opcion          String  @default("") // "Opción 1", "Opción 2", etc.
+  orden           Int     @default(0)
 
   cotizacion Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
 

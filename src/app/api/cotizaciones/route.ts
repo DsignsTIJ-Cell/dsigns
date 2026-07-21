@@ -42,7 +42,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { items, clienteId, tipoCambio, ...data } = body;
 
-    // Obtener siguiente número de cotización
     const config = await db.configuracion.findFirst();
     const num = config?.siguienteCotizacionNum || 1348;
     const numeroCotizacion = `S0${num}`;
@@ -57,7 +56,7 @@ export async function POST(request: Request) {
     const iva = subtotal * ivaPct;
     const retISR = subtotal * isrPct;
     const total = subtotal - iva - retISR;
-    const tc = tipoCambio || config?.ivaPorcentaje || 17.5;
+    const tc = tipoCambio || 17.5;
     const anticipoUSD = (total * 0.5) / tc;
     const totalUSD = total / tc;
 
@@ -77,8 +76,19 @@ export async function POST(request: Request) {
         totalUSD,
         clienteId,
         items: {
-          create: items.map((item: { opcion: string; orden: number }, i: number) => ({
-            ...item,
+          create: items.map((item: Record<string, unknown>, i: number) => ({
+            codigo: item.codigo || "",
+            descripcion: item.descripcion || "",
+            alto: Number(item.alto) || 0,
+            ancho: Number(item.ancho) || 0,
+            area: Number(item.area) || 0,
+            precioBaseM2: Number(item.precioBaseM2) || 0,
+            precioBaseTotal: Number(item.precioBaseTotal) || 0,
+            utilidadPorcentaje: Number(item.utilidadPorcentaje) || 50,
+            montoUtilidad: Number(item.montoUtilidad) || 0,
+            precioUnitario: Number(item.precioUnitario) || 0,
+            cantidad: Number(item.cantidad) || 0,
+            total: Number(item.total) || 0,
             opcion: item.opcion || "",
             orden: item.orden ?? i,
           })),
@@ -87,7 +97,6 @@ export async function POST(request: Request) {
       include: { cliente: true, items: { orderBy: { orden: "asc" } } },
     });
 
-    // Actualizar siguiente número
     if (config) {
       await db.configuracion.update({
         where: { id: config.id },
@@ -107,7 +116,6 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { id, items, ...data } = body;
 
-    // Si hay items nuevos, eliminar los viejos y crear los nuevos
     if (items) {
       await db.cotizacionItem.deleteMany({ where: { cotizacionId: id } });
 
@@ -118,7 +126,7 @@ export async function PUT(request: Request) {
       const iva = subtotal * ivaPct;
       const retISR = subtotal * isrPct;
       const total = subtotal - iva - retISR;
-      const tc = data.tipoCambio || 17.5;
+      const tc = Number(data.tipoCambio) || 17.5;
 
       const cotizacion = await db.cotizacion.update({
         where: { id },
@@ -131,8 +139,19 @@ export async function PUT(request: Request) {
           anticipoUSD: (total * 0.5) / tc,
           totalUSD: total / tc,
           items: {
-            create: items.map((item: { opcion: string; orden: number }, i: number) => ({
-              ...item,
+            create: items.map((item: Record<string, unknown>, i: number) => ({
+              codigo: item.codigo || "",
+              descripcion: item.descripcion || "",
+              alto: Number(item.alto) || 0,
+              ancho: Number(item.ancho) || 0,
+              area: Number(item.area) || 0,
+              precioBaseM2: Number(item.precioBaseM2) || 0,
+              precioBaseTotal: Number(item.precioBaseTotal) || 0,
+              utilidadPorcentaje: Number(item.utilidadPorcentaje) || 50,
+              montoUtilidad: Number(item.montoUtilidad) || 0,
+              precioUnitario: Number(item.precioUnitario) || 0,
+              cantidad: Number(item.cantidad) || 0,
+              total: Number(item.total) || 0,
               opcion: item.opcion || "",
               orden: item.orden ?? i,
             })),
