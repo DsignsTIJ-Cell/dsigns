@@ -97,6 +97,7 @@ export function calcularPrecioItem(item: {
 export interface Cotizacion {
   id: string;
   numeroCotizacion: string;
+  titulo: string;
   fecha: string;
   validoHasta: string;
   tipoCambio: number;
