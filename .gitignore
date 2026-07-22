@@ -63,3 +63,8 @@ download/
 scripts/
 test
 prompt
+
+tool-results/
+upload/
+worklog.md
+install.sh
