@@ -115,3 +115,24 @@ Stage Summary:
 - Archivos nuevos: CotizacionForm.tsx
 - Archivos modificados: appStore.ts, page.tsx, PanelCotizaciones.tsx
 - Falta: Paso 6 (historial real de cotizaciones en vez de mock data) y Paso 5 (PDF)
+
+---
+Task ID: 7
+Agent: Main
+Task: Paso 7 - Reportes y gráficas de ventas
+
+Work Log:
+- Creado API endpoint GET /api/reportes que calcula: KPIs generales, datos por mes (últimos 6 meses), distribución por estado, top 5 clientes por monto
+- Reescrito PanelReportes.tsx: de placeholder estático a panel completo con datos reales
+- Implementadas 5 secciones visuales: KPIs principales (3 cards), KPIs secundarios (2 cards), gráfica de barras de ventas por periodo, gráfica de líneas de cotizaciones por mes (totales vs aprobadas), gráfica de pastel de distribución por estado, tabla top 5 clientes con avatares, barras de progreso de monto por estado
+- Estado vacío: cuando no hay cotizaciones muestra mensaje informativo
+- Botón de refresh manual
+- Loading skeleton mientras carga datos
+- Build exitoso sin errores
+- API probado con curl: devuelve datos reales de la cotización S01348
+
+Stage Summary:
+- Archivos nuevos: src/app/api/reportes/route.ts
+- Archivos modificados: src/components/app/PanelReportes.tsx
+- Gráficas implementadas: BarChart, LineChart, PieChart (Recharts via shadcn/ui chart.tsx)
+- Verificación: build OK, API OK con datos reales
