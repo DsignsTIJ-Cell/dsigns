@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Save, Building2, Phone, Mail, User, Percent } from "lucide-react";
+import { Save, Building2, Phone, Mail, User, Percent, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export function PanelConfiguracion() {
@@ -194,6 +195,28 @@ export function PanelConfiguracion() {
               className="h-10"
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Términos y Condiciones */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <FileText size={16} className="text-[#1e3a5f]" />
+            Términos y Condiciones
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-[11px] text-muted-foreground">
+            Estos términos se incluirán automáticamente en cada PDF de cotización generado.
+          </p>
+          <Textarea
+            value={config.terminosCondiciones}
+            onChange={(e) => setConfig({ ...config, terminosCondiciones: e.target.value })}
+            rows={8}
+            className="text-xs resize-y"
+            placeholder="Ingrese los términos y condiciones que aparecerán en las cotizaciones..."
+          />
         </CardContent>
       </Card>
 

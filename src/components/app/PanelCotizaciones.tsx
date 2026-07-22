@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   FileText, Plus, Search, Filter, Download, ArrowLeft,
   Loader2, Package, Trash2, AlertCircle, Pencil, Copy,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -241,6 +242,23 @@ function VistaDetalle({
     }
   };
 
+  const enviarWhatsApp = () => {
+    const telefono = (cot.cliente?.telefono || "").replace(/[^\d]/g, "");
+    const mensaje = encodeURIComponent(
+      `Hola ${cot.cliente?.nombre || ""}! Le comparto la cotización ${cot.numeroCotizacion} - ${cot.titulo || ""}.\n` +
+      `Total: $${fmt(cot.total)} MXN\n` +
+      `Anticipo 50%: $${fmt(cot.anticipo)} ${cot.monedaAnticipo}\n` +
+      `Válida hasta: ${new Date(cot.validoHasta).toLocaleDateString("es-MX")}\n\n` +
+      `Consulte el PDF adjunto para más detalles.\n` +
+      `Saludos, ${cot.asesor || "Dsigns"}`
+    );
+    if (telefono) {
+      window.open(`https://wa.me/52${telefono}?text=${mensaje}`, "_blank");
+    } else {
+      window.open(`https://wa.me/?text=${mensaje}`, "_blank");
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Encabezado */}
@@ -385,14 +403,24 @@ function VistaDetalle({
       </Card>
 
       {/* Botones de acción */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button
           onClick={descargarPDF}
           disabled={descargando}
-          className="flex-1 h-11 bg-[#1e3a5f] hover:bg-[#2a5082] gap-2 text-sm font-semibold"
+          className="flex-1 h-11 min-w-[130px] bg-[#1e3a5f] hover:bg-[#2a5082] gap-2 text-sm font-semibold"
         >
           {descargando ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
           {descargando ? "Generando..." : "Descargar PDF"}
+        </Button>
+
+        <Button
+          variant="outline"
+          className="h-11 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800 gap-2 text-xs font-semibold"
+          onClick={enviarWhatsApp}
+          title="Enviar por WhatsApp"
+        >
+          <MessageSquare size={16} />
+          WhatsApp
         </Button>
 
         <Button

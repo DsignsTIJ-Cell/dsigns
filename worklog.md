@@ -136,3 +136,25 @@ Stage Summary:
 - Archivos modificados: src/components/app/PanelReportes.tsx
 - Gráficas implementadas: BarChart, LineChart, PieChart (Recharts via shadcn/ui chart.tsx)
 - Verificación: build OK, API OK con datos reales
+
+---
+Task ID: 8
+Agent: Main
+Task: Paso 8 - Configuración final, WhatsApp, y pruebas
+
+Work Log:
+- Agregado botón "Enviar por WhatsApp" en VistaDetalle de PanelCotizaciones
+  - Genera link wa.me con prefijo 52 (México) usando teléfono del cliente
+  - Mensaje prellenado con: saludo, número de cotización, título, total, anticipo, vigencia, asesor
+  - Si no hay teléfono abre WhatsApp sin destinatario con el mensaje
+- Mejorado PanelConfiguracion: agregada sección "Términos y Condiciones" con Textarea
+  - Los términos se guardan en la DB y se incluyen en cada PDF generado
+  - Antes estaban ocultos (se guardaban pero no había UI para editarlos)
+- Build final exitoso (next build) sin errores
+- APIs verificadas: /api/config, /api/cotizaciones, /api/reportes, /api/clientes, /api/productos - todas 200 OK
+- PWA: manifest.json con iconos 192/512, theme_color #1e3a5f, standalone, portrait
+
+Stage Summary:
+- Archivos modificados: PanelCotizaciones.tsx (función enviarWhatsApp + botón), PanelConfiguracion.tsx (Textarea términos)
+- Verificación: build OK, todas las APIs responden 200 OK, app renders correctamente
+- Todos los 8 pasos completados
